@@ -35,10 +35,10 @@
 /*
  * PR #3 still needed roughly 135% browser zoom on the target display.
  * Scale the complete desktop system by that factor rather than enlarging
- * isolated pieces. The 118rem gate guarantees the enlarged minimum columns
+ * isolated pieces. The 120rem gate guarantees the enlarged minimum columns
  * and gaps fit before this layout is enabled.
  */
-@media (min-width: 118rem) {
+@media (min-width: 120rem) {
     .main-content {
         grid-template-columns:
             minmax(31rem, 35rem)
