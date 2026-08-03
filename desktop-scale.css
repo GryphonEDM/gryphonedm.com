@@ -1,0 +1,128 @@
+/*
+ * Wide-desktop scale correction.
+ *
+ * The base responsive stylesheet remains responsible for mobile, tablet,
+ * and ordinary desktop widths. This file only reproduces the approved
+ * browser-zoom proportions on displays wide enough to contain them without
+ * compressing the side panels.
+ */
+
+/* Keep link contents inside their gray list-item backgrounds at every zoom. */
+.project-item,
+.cactus-item {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.project-link,
+.cactus-link {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    overflow-wrap: anywhere;
+    word-break: normal;
+}
+
+.project-text,
+.book-content,
+.book-info {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+/*
+ * PR #3 still needed roughly 135% browser zoom on the target display.
+ * Scale the complete desktop system by that factor rather than enlarging
+ * isolated pieces. The 120rem gate guarantees the enlarged minimum columns
+ * and gaps fit before this layout is enabled.
+ */
+@media (min-width: 120rem) {
+    .main-content {
+        grid-template-columns:
+            minmax(31rem, 35rem)
+            minmax(49rem, 1fr)
+            minmax(31rem, 35rem);
+        column-gap: clamp(2rem, 3.1vw, 5.4rem);
+        row-gap: clamp(3.4rem, 8vh, 6.1rem);
+        width: min(calc(100% - 3rem), 151rem);
+        padding-block: clamp(1.35rem, 3.4vh, 2.7rem);
+    }
+
+    .left-section,
+    .right-section {
+        padding: clamp(2.15rem, 2.7vw, 2.85rem);
+    }
+
+    .projects-header,
+    .cactus-header {
+        max-width: 100%;
+        font-size: clamp(2.15rem, 2.55vw, 2.56rem);
+    }
+
+    .projects-header {
+        margin-bottom: 2rem;
+    }
+
+    .cactus-header {
+        margin-bottom: 1.35rem;
+    }
+
+    .project-item,
+    .cactus-item {
+        margin-bottom: 1.08rem;
+        padding: 1rem 0.75rem;
+        font-size: clamp(1.55rem, 0.47vw + 1.35rem, 1.76rem);
+    }
+
+    .project-link,
+    .cactus-link {
+        margin: -1rem -0.75rem;
+        padding: 1rem 0.75rem;
+    }
+
+    .book-content {
+        gap: 1.35rem;
+    }
+
+    .book-cover-placeholder {
+        width: 86px;
+        height: 116px;
+    }
+
+    #wrap {
+        width: min(100%, 56.7rem, 72vh);
+    }
+
+    #output {
+        max-width: 56.7rem;
+    }
+
+    #welcome {
+        margin-bottom: clamp(3.4rem, 8vh, 6.1rem);
+        font-size: clamp(2.56rem, 3.5vw, 3.24rem);
+    }
+
+    .cactus-image-wrapper {
+        margin-bottom: 1.6rem;
+        padding: clamp(2.35rem, 3.4vw, 3.4rem);
+    }
+
+    .cactus-image {
+        width: clamp(162px, 10vw, 196px);
+        height: clamp(162px, 10vw, 196px);
+    }
+
+    .cactus-container {
+        gap: 1.2rem;
+    }
+
+    .social-links {
+        gap: clamp(1.7rem, 3.1vw, 3.4rem);
+    }
+
+    .social-links a {
+        font-size: clamp(2.56rem, 3.5vw, 3.24rem);
+    }
+}
