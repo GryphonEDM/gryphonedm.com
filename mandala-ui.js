@@ -32,8 +32,12 @@
 
     // sliders
     var sliders = document.querySelectorAll('.mandala-sliders input[type="range"]');
+    function showValue(s) {
+        var out = s.parentNode.querySelector('output');
+        if (out) out.textContent = (+s.value).toFixed(2);
+    }
     function syncControls() {
-        sliders.forEach(function (s) { s.value = M.params[s.name]; });
+        sliders.forEach(function (s) { s.value = M.params[s.name]; showValue(s); });
         document.querySelectorAll('#mandala-folds button').forEach(function (b) {
             b.setAttribute('aria-pressed', String(+b.dataset.v === M.params.folds));
         });
@@ -42,7 +46,7 @@
         uv.textContent = M.params.uv ? 'uv light on' : 'uv light off';
     }
     sliders.forEach(function (s) {
-        s.addEventListener('input', function () { M.set(s.name, s.value); });
+        s.addEventListener('input', function () { M.set(s.name, s.value); showValue(s); });
     });
     document.getElementById('mandala-folds').addEventListener('click', function (e) {
         var b = e.target.closest('button'); if (!b) return;

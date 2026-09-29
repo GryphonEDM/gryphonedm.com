@@ -6,7 +6,7 @@
  */
 (function () {
 'use strict';
-var DEFAULTS = { flow: 0.45, trip: 0.35, swirl: 0.7, drips: 1, gloss: 1, glow: 0.55, folds: 6, uv: 1 };
+var DEFAULTS = { flow: 0.26, trip: 0.35, swirl: 0.7, drips: 1, gloss: 1, glow: 0.55, folds: 6, uv: 1 };
 var params = Object.assign({}, DEFAULTS);
 var gl = null, cv = null, ready = false, running = false, rafId = 0;
 var P = {}, api;

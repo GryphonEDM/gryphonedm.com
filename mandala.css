@@ -89,12 +89,19 @@ body.mode-mandala .mandala-controls {
 
 .mandala-sliders label {
     display: grid;
-    grid-template-columns: 3.6rem minmax(0, 1fr);
+    grid-template-columns: 3.6rem minmax(0, 1fr) 2.4rem;
     align-items: center;
     gap: 0.5rem;
     min-width: 0;
     text-transform: lowercase;
     letter-spacing: 0.05em;
+}
+
+.mandala-sliders output {
+    color: #999;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
 }
 
 .mandala-sliders input[type="range"] {
