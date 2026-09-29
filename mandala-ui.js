@@ -55,18 +55,20 @@
     document.getElementById('mandala-reset').addEventListener('click', function () { M.reset(); syncControls(); });
     var pngBtn = document.getElementById('mandala-png'), gifBtn = document.getElementById('mandala-gif');
     pngBtn.addEventListener('click', function () {
-        M.savePNG(1600).catch(function () { errEl.textContent = 'Couldn\u2019t save the image.'; errEl.hidden = false; });
+        M.savePNG(2048).catch(function () { errEl.textContent = 'Couldn\u2019t save the image.'; errEl.hidden = false; });
     });
+    var gifLen = document.getElementById('mandala-giflen');
     gifBtn.addEventListener('click', function () {
         if (M.recording) return;
-        gifBtn.disabled = true; pngBtn.disabled = true;
-        M.saveGIF({ seconds: 3, size: 480 }, function (n, total) {
-            gifBtn.textContent = 'recording ' + Math.round(n / total * 100) + '%';
+        var pick = gifLen.value.split('x');  // "seconds x size"
+        gifBtn.disabled = true; pngBtn.disabled = true; gifLen.disabled = true;
+        M.saveGIF({ seconds: +pick[0], size: +pick[1] }, function (stage, f) {
+            gifBtn.textContent = (stage === 'recording' ? 'recording ' : 'encoding ') + Math.round(f * 100) + '%';
         }).catch(function (e) {
             console.error(e);
-            errEl.textContent = 'Couldn\u2019t make the GIF. Check your connection and try again.'; errEl.hidden = false;
+            errEl.textContent = 'Couldn\u2019t make the GIF: ' + (e && e.message ? e.message : e); errEl.hidden = false;
         }).then(function () {
-            gifBtn.disabled = false; pngBtn.disabled = false; gifBtn.textContent = 'save gif';
+            gifBtn.disabled = false; pngBtn.disabled = false; gifLen.disabled = false; gifBtn.textContent = 'save gif';
         });
     });
     syncControls();

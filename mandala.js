@@ -129,7 +129,7 @@ void main(){
 /* Display: fluorescent response, wet-paint relief, glow, grain. */
 const DISP=`#version 300 es
 precision highp float;in vec2 uv;out vec4 o;
-uniform sampler2D paint;uniform float t,uvOn,trip,gloss,glow;uniform vec2 res,m;
+uniform sampler2D paint;uniform float t,uvOn,trip,gloss,glow,lodOff;uniform vec2 res,m;
 ${NOISE}
 float lum(vec3 c){return dot(c,vec3(.299,.587,.114));}
 vec3 hueShift(vec3 c,float h){const vec3 k=vec3(.57735);float ca=cos(h);return c*ca+cross(k,c)*sin(h)+k*dot(k,c)*(1.-ca);}
@@ -145,16 +145,16 @@ void main(){
  float edge=.466+.006*noise(vec3(c*9.,t*.1))+.003*sin(atan(c.y,c.x)*23.);
  float inside=smoothstep(edge,edge-.004,r);
  float px=1./res.x;
- float hC=lum(texture(paint,uv,2.).rgb);
- float hX=lum(texture(paint,uv+vec2(px*3.,0),2.).rgb);
- float hY=lum(texture(paint,uv+vec2(0,px*3.),2.).rgb);
+ float hC=lum(texture(paint,uv,2.+lodOff).rgb);
+ float hX=lum(texture(paint,uv+vec2(px*3.,0),2.+lodOff).rgb);
+ float hY=lum(texture(paint,uv+vec2(0,px*3.),2.+lodOff).rgb);
  vec3 n=normalize(vec3((hC-hX)*1.6*gloss,(hC-hY)*1.6*gloss,1.));
  vec2 ca=c*.004*smoothstep(.2,.46,r);
  vec3 col=vec3(texture(paint,uv+ca).r,texture(paint,uv).g,texture(paint,uv-ca).b);
  float hz=fbm(vec3(uv*2.,t*.05))*6.2831;
  float hs=trip*(hz*.55+sin(t*.25)*.6);
  col=clamp(hueShift(col,hs),0.,1.);
- vec3 glowS=textureLod(paint,uv,4.5).rgb+textureLod(paint,uv,6.).rgb;
+ vec3 glowS=textureLod(paint,uv,4.5+lodOff).rgb+textureLod(paint,uv,6.+lodOff).rgb;
  glowS=clamp(hueShift(glowS*.5,hs),0.,1.);
  // the light drifts on its own and always stays tilted: straight-on light would glare off every flat patch at once
  vec2 tilt=vec2(cos(t*.3),sin(t*.23))*.6;
@@ -175,7 +175,7 @@ void main(){
  }
  float halo=exp(-max(r-edge,0.)*28.)*(1.-inside);
  vec3 room=uvOn>.5?vec3(.028,.012,.06):vec3(.05,.045,.06);
- vec3 spill=(uvOn>.5?fluor(textureLod(paint,.5+normalize(c+1e-5)*.43,5.).rgb)*.45:vec3(0))*halo;
+ vec3 spill=(uvOn>.5?fluor(textureLod(paint,.5+normalize(c+1e-5)*.43,5.+lodOff).rgb)*.45:vec3(0))*halo;
  o=vec4(mix(room+spill+vec3(.18,.05,.5)*halo*.25*uvOn,lit,inside),1.);
  o.rgb=1.-exp(-o.rgb*1.35);
 }`;
@@ -355,13 +355,16 @@ function step(dt){
   dropClock-=sdt*params.drips;if(dropClock<=0){autoDrop();dropClock=.35+Math.random()*.6;}
  }
 }
-function renderPaint(){
+function renderPaint(tgt){
+ tgt=tgt||paint;
  gl.useProgram(P.paint.p);gl.uniform3fv(P.paint.u.P,PAL);
- run(P.paint,paint,{dye:dye.r.t},{folds:params.folds,t:T});
- gl.bindTexture(gl.TEXTURE_2D,paint.t);gl.generateMipmap(gl.TEXTURE_2D);
+ run(P.paint,tgt,{dye:dye.r.t},{folds:params.folds,t:T});
+ gl.bindTexture(gl.TEXTURE_2D,tgt.t);gl.generateMipmap(gl.TEXTURE_2D);
 }
-function display(fbo,w){
- run(P.disp,{f:fbo,w:w},{paint:paint.t},{t:T,uvOn:params.uv,trip:params.trip,gloss:params.gloss,glow:params.glow,res:[w,w],m:[ptr.x,ptr.y]});
+// res = the size the look is tuned to (the live canvas), so exports match what's on screen
+function display(fbo,w,src,look){
+ src=src||paint;look=look||w;
+ run(P.disp,{f:fbo,w:w},{paint:src.t},{t:T,uvOn:params.uv,trip:params.trip,gloss:params.gloss,glow:params.glow,lodOff:Math.log2(src.w/1024),res:[look,look],m:[ptr.x,ptr.y]});
 }
 function frame(now){
  if(!running)return;
@@ -371,7 +374,7 @@ function frame(now){
  rafId=requestAnimationFrame(frame);
 }
 // offscreen render at any size -> RGBA pixels, top row first
-const snap={t:null,f:null,w:0};
+const snap={t:null,f:null,w:0};let paintHi=null;
 function grab(size){
  if(snap.w!==size){
   if(snap.t){gl.deleteTexture(snap.t);gl.deleteFramebuffer(snap.f);}
@@ -380,7 +383,10 @@ function grab(size){
   snap.f=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,snap.f);
   gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,snap.t,0);snap.w=size;
  }
- renderPaint();display(snap.f,size);
+ // big exports get their own 2048px paint layer so edges stay crisp instead of being stretched
+ let src=paint;
+ if(size>1024){if(!paintHi)paintHi=target(2048,'8',true);src=paintHi;}
+ renderPaint(src);display(snap.f,size,src,Math.max(cv.width,512));
  const px=new Uint8Array(size*size*4);gl.readPixels(0,0,size,size,gl.RGBA,gl.UNSIGNED_BYTE,px);
  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
  const out=new Uint8ClampedArray(px.length),row=size*4;
@@ -411,23 +417,32 @@ api = {
  /* PNG of the current moment */
  savePNG: function (size) {
   if (!ready) return Promise.reject(new Error('not running'));
-  size = size || 1600;
+  size = size || 2048;
   var c = document.createElement('canvas'); c.width = c.height = size;
   c.getContext('2d').putImageData(new ImageData(api._grab(size), size, size), 0, 0);
   return new Promise(function (res) { c.toBlob(function (b) { download(b, 'gryphon-mandala.png'); res(); }, 'image/png'); });
  },
 
- /* Seamless GIF loop recorded forward from now. onProgress(done, total) */
+ /* Seamless GIF loop recorded forward from now. onProgress(stage, fraction)
+    Frames are captured here and encoded in a background worker so the page keeps running smoothly. */
  saveGIF: async function (opts, onProgress) {
   if (!ready || api.recording) return;
-  opts = Object.assign({ seconds: 3, size: 480, fps: 20 }, opts);
-  var lib = await import('https://cdn.jsdelivr.net/npm/gifenc@1.0.3/dist/gifenc.esm.js');
+  opts = Object.assign({ seconds: 5, size: 640, fps: 20 }, opts);
   var fps = opts.fps, L = Math.round(opts.seconds * fps), F = Math.min(fps, Math.floor(L / 3)), size = opts.size;
-  var enc = lib.GIFEncoder(), head = [];
-  function write(d) {
-   var pal = lib.quantize(d, 256, { format: 'rgb565' });
-   enc.writeFrame(lib.applyPalette(d, pal, 'rgb565'), size, size, { palette: pal, delay: 1000 / fps });
-  }
+  var worker = new Worker(URL.createObjectURL(new Blob([GIF_WORKER], { type: 'text/javascript' })), { type: 'module' });
+  var encoded = 0, inFlight = 0, waiters = [], done, failed;
+  var finished = new Promise(function (res, rej) { done = res; failed = rej; });
+  worker.onmessage = function (e) {
+   var m = e.data;
+   if (m.type === 'frame-done') {
+    encoded++; inFlight--;
+    if (onProgress) onProgress('encoding', encoded / L);
+    var w = waiters.shift(); if (w) w();
+   } else if (m.type === 'done') done(m.bytes);
+   else if (m.type === 'error') failed(new Error(m.message));
+  };
+  worker.onerror = function (e) { failed(new Error(e.message || 'GIF worker failed to start')); };
+  worker.postMessage({ type: 'start', size: size, L: L, F: F, delay: Math.round(1000 / fps) });
   var saved = params.flow;
   api.recording = true;
   try {
@@ -435,21 +450,55 @@ api = {
    for (var i = 0; i < L + F; i++) {
     api._advance(1 / fps / 2); api._advance(1 / fps / 2);
     var d = api._grab(size);
-    if (i < F) head.push(d);
-    else if (i < L) write(d);
-    else { // cross-fade the tail into the head so the loop has no jump
-     var k = i - L, w = (k + 1) / F, h = head[k], m = new Uint8ClampedArray(d.length);
-     for (var j = 0; j < d.length; j++) m[j] = d[j] * (1 - w) + h[j] * w;
-     write(m);
-    }
-    if (onProgress) onProgress(i + 1, L + F);
+    // don't let captured frames pile up faster than the worker can encode them
+    if (i >= F) { while (inFlight >= 4) await new Promise(function (r) { waiters.push(r); }); inFlight++; }
+    worker.postMessage({ type: 'frame', i: i, buf: d.buffer }, [d.buffer]);
+    if (onProgress) onProgress('recording', (i + 1) / (L + F));
     await new Promise(function (r) { requestAnimationFrame(r); });
    }
-   enc.finish();
-   download(new Blob([enc.bytes()], { type: 'image/gif' }), 'gryphon-mandala.gif');
-  } finally { api.recording = false; params.flow = saved; }
+   worker.postMessage({ type: 'finish' });
+   var bytes = await finished;
+   download(new Blob([bytes], { type: 'image/gif' }), 'gryphon-mandala.gif');
+  } finally { api.recording = false; params.flow = saved; worker.terminate(); }
  }
 };
+/* Runs off the main thread: dithers each frame (smooths the glow gradients that 256-colour GIFs band),
+   builds its palette, encodes it, and cross-fades the last second into the first so the loop is seamless. */
+var GIF_WORKER = [
+"import { GIFEncoder, quantize, applyPalette } from 'https://cdn.jsdelivr.net/npm/gifenc@1.0.3/dist/gifenc.esm.js';",
+"var enc, o, head = [];",
+"var BAYER = [0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];",
+"function dither(d, s) {",
+"  for (var y = 0; y < s; y++) for (var x = 0; x < s; x++) {",
+"    var t = (BAYER[(y & 3) * 4 + (x & 3)] / 16 - 0.47) * 9, k = (y * s + x) * 4;",
+"    d[k] += t; d[k + 1] += t; d[k + 2] += t;",
+"  }",
+"}",
+"function write(d) {",
+"  dither(d, o.size);",
+"  var pal = quantize(d, 256, { format: 'rgb565' });",
+"  enc.writeFrame(applyPalette(d, pal, 'rgb565'), o.size, o.size, { palette: pal, delay: o.delay });",
+"  postMessage({ type: 'frame-done' });",
+"}",
+"onmessage = function (e) {",
+"  var m = e.data;",
+"  try {",
+"    if (m.type === 'start') { o = m; enc = GIFEncoder(); head = []; }",
+"    else if (m.type === 'frame') {",
+"      var d = new Uint8ClampedArray(m.buf);",
+"      if (m.i < o.F) { head.push(d); return; }",
+"      if (m.i >= o.L) {",
+"        var k = m.i - o.L, w = (k + 1) / o.F, h = head[k];",
+"        for (var j = 0; j < d.length; j++) d[j] = d[j] * (1 - w) + h[j] * w;",
+"      }",
+"      write(d);",
+"    } else if (m.type === 'finish') {",
+"      enc.finish(); var b = enc.bytes();",
+"      postMessage({ type: 'done', bytes: b }, [b.buffer]);",
+"    }",
+"  } catch (err) { postMessage({ type: 'error', message: String(err && err.message || err) }); }",
+"};"
+].join('\n');
 function download(blob, name) {
  var a = document.createElement('a');
  a.href = URL.createObjectURL(blob); a.download = name;

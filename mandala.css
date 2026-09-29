@@ -138,6 +138,18 @@ body.mode-mandala .mandala-controls {
 
 .mandala-controls button:hover { border-color: #fff; color: #fff; }
 
+.mandala-controls select {
+    font: inherit;
+    font-size: 0.85rem;
+    color: #e0e0e0;
+    background: #000;
+    border: 1px solid rgba(29, 185, 84, 0.6);
+    border-radius: 999px;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+}
+
+.mandala-controls select:disabled,
 .mandala-controls button:disabled { opacity: 0.6; cursor: progress; }
 
 #mandala-png,
