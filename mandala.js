@@ -129,7 +129,9 @@ void main(){
 /* Display: fluorescent response, wet-paint relief, glow, grain. */
 const DISP=`#version 300 es
 precision highp float;in vec2 uv;out vec4 o;
-uniform sampler2D paint;uniform float t,uvOn,trip,gloss,glow,lodOff;uniform vec2 res,m;
+uniform sampler2D paint,fine;uniform float t,uvOn,trip,gloss,glow,lodOff;uniform vec2 res,m;
+// region: which part of the full image this pass draws (whole image live; one tile of a big PNG)
+uniform vec4 region;
 ${NOISE}
 float lum(vec3 c){return dot(c,vec3(.299,.587,.114));}
 vec3 hueShift(vec3 c,float h){const vec3 k=vec3(.57735);float ca=cos(h);return c*ca+cross(k,c)*sin(h)+k*dot(k,c)*(1.-ca);}
@@ -141,27 +143,30 @@ vec3 fluor(vec3 c){
  return max(s,0.)*(.25+1.9*e);
 }
 void main(){
- vec2 c=uv-.5;float r=length(c);
+ vec2 U=region.xy+uv*region.zw;
+ vec2 c=U-.5;float r=length(c);
  float edge=.466+.006*noise(vec3(c*9.,t*.1))+.003*sin(atan(c.y,c.x)*23.);
  float inside=smoothstep(edge,edge-.004,r);
  float px=1./res.x;
- float hC=lum(texture(paint,uv,2.+lodOff).rgb);
- float hX=lum(texture(paint,uv+vec2(px*3.,0),2.+lodOff).rgb);
- float hY=lum(texture(paint,uv+vec2(0,px*3.),2.+lodOff).rgb);
+ float hC=lum(texture(paint,U,2.+lodOff).rgb);
+ float hX=lum(texture(paint,U+vec2(px*3.,0),2.+lodOff).rgb);
+ float hY=lum(texture(paint,U+vec2(0,px*3.),2.+lodOff).rgb);
  vec3 n=normalize(vec3((hC-hX)*1.6*gloss,(hC-hY)*1.6*gloss,1.));
  vec2 ca=c*.004*smoothstep(.2,.46,r);
- vec3 col=vec3(texture(paint,uv+ca).r,texture(paint,uv).g,texture(paint,uv-ca).b);
- float hz=fbm(vec3(uv*2.,t*.05))*6.2831;
+ // sharp colour comes from the fine paint layer (the tile's own, for big PNGs)
+ vec2 caL=ca/region.zw;
+ vec3 col=vec3(texture(fine,uv+caL).r,texture(fine,uv).g,texture(fine,uv-caL).b);
+ float hz=fbm(vec3(U*2.,t*.05))*6.2831;
  float hs=trip*(hz*.55+sin(t*.25)*.6);
  col=clamp(hueShift(col,hs),0.,1.);
- vec3 glowS=textureLod(paint,uv,4.5+lodOff).rgb+textureLod(paint,uv,6.+lodOff).rgb;
+ vec3 glowS=textureLod(paint,U,4.5+lodOff).rgb+textureLod(paint,U,6.+lodOff).rgb;
  glowS=clamp(hueShift(glowS*.5,hs),0.,1.);
  // the light drifts on its own and always stays tilted: straight-on light would glare off every flat patch at once
  vec2 tilt=vec2(cos(t*.3),sin(t*.23))*.6;
  float tl=length(tilt);tilt=tl<1e-3?vec2(.5,0.):tilt/tl*clamp(tl,.5,.9);
  vec3 L=normalize(vec3(tilt,1.));
  float rv=max(dot(reflect(-L,n),vec3(0,0,1)),0.);float spec=pow(rv,70.)+.18*pow(rv,10.);
- float grain=noise(vec3(uv*res*.5,1.))*.5+.5;
+ float grain=noise(vec3(U*res*.5,1.))*.5+.5;
  vec3 lit;
  if(uvOn>.5){
   lit=fluor(col)+fluor(glowS)*glow;
@@ -234,13 +239,23 @@ void main(){float d=length(uv-pt);vec4 s=texture(src,uv);
 /* Keep feeding the dish: blend a little of the slowly changing design back in so it never turns to mud */
 const MIXP=HDR+`uniform sampler2D dye,src;uniform float k;void main(){o=vec4(mix(texture(dye,uv).rgb,texture(src,uv).rgb,k),1);}`;
 /* Pigment separation: snap mixed colors toward real paints, and lay dark lacing where two paints meet */
-const PAINT=HDR+`uniform sampler2D dye;uniform float folds,t;
+const PAINT=HDR+`uniform sampler2D dye;uniform float folds,t,smoothDye;uniform vec4 region;
+// B-spline sampling of the simulation grid: removes the stair-steps a 1024-cell grid shows when blown up to 4k/8k
+vec4 cubicW(float v){vec4 n=vec4(1,2,3,4)-v;vec4 s=n*n*n;float x=s.x,y=s.y-4.*s.x,z=s.z-4.*s.y+6.*s.x;return vec4(x,y,z,6.-x-y-z)*(1./6.);}
+vec3 bicubic(sampler2D tx,vec2 p){
+ vec2 ts=vec2(textureSize(tx,0)),inv=1./ts;p=p*ts-.5;vec2 f=fract(p);p-=f;
+ vec4 xc=cubicW(f.x),yc=cubicW(f.y);vec4 c=p.xxyy+vec2(-.5,1.5).xyxy;
+ vec4 s=vec4(xc.xz+xc.yw,yc.xz+yc.yw);vec4 off=(c+vec4(xc.yw,yc.yw)/s)*inv.xxyy;
+ vec3 s0=texture(tx,off.xz).rgb,s1=texture(tx,off.yz).rgb,s2=texture(tx,off.xw).rgb,s3=texture(tx,off.yw).rgb;
+ float sx=s.x/(s.x+s.y),sy=s.z/(s.z+s.w);
+ return mix(mix(s3,s2,sx),mix(s1,s0,sx),sy);
+}
 const int NP=10;
 uniform vec3 P[NP];
 void main(){
- vec2 c=uv-.5;
+ vec2 c=region.xy+uv*region.zw-.5;
  if(folds>.5){float a=atan(c.y,c.x),r=length(c),s=6.2832/folds;a=mod(a+t*.02,s);a=abs(a-s*.5);c=r*vec2(cos(a),sin(a));}
- vec3 x=texture(dye,c+.5).rgb;
+ vec3 x=smoothDye>.5?bicubic(dye,c+.5):texture(dye,c+.5).rgb;
  float d1=9.,d2=9.;vec3 acc=vec3(0);float ws=0.;
  for(int i=0;i<NP;i++){float d=distance(x,P[i]);
   if(d<d1){d2=d1;d1=d;}else if(d<d2){d2=d;}
@@ -356,16 +371,18 @@ function step(dt){
   dropClock-=sdt*params.drips;if(dropClock<=0){autoDrop();dropClock=.35+Math.random()*.6;}
  }
 }
-function renderPaint(tgt){
+const FULL=new Float32Array([0,0,1,1]);
+function renderPaint(tgt,region){
  tgt=tgt||paint;
- gl.useProgram(P.paint.p);gl.uniform3fv(P.paint.u.P,PAL);
- run(P.paint,tgt,{dye:dye.r.t},{folds:params.folds,t:T});
+ gl.useProgram(P.paint.p);gl.uniform3fv(P.paint.u.P,PAL);gl.uniform4fv(P.paint.u.region,region||FULL);
+ run(P.paint,tgt,{dye:dye.r.t},{folds:params.folds,t:T,smoothDye:tgt===paint?0:1});
  gl.bindTexture(gl.TEXTURE_2D,tgt.t);gl.generateMipmap(gl.TEXTURE_2D);
 }
 // res = the size the look is tuned to (the live canvas), so exports match what's on screen
-function display(fbo,w,src,look){
- src=src||paint;look=look||w;
- run(P.disp,{f:fbo,w:w},{paint:src.t},{t:T,uvOn:params.uv,trip:params.trip,gloss:params.gloss,glow:params.glow,lodOff:Math.log2(src.w/1024),res:[look,look],m:[ptr.x,ptr.y]});
+function display(fbo,w,src,look,fine,region){
+ src=src||paint;look=look||w;fine=fine||src;
+ gl.useProgram(P.disp.p);gl.uniform4fv(P.disp.u.region,region||FULL);
+ run(P.disp,{f:fbo,w:w},{paint:src.t,fine:fine.t},{t:T,uvOn:params.uv,trip:params.trip,gloss:params.gloss,glow:params.glow,lodOff:Math.log2(src.w/1024),res:[look,look],m:[ptr.x,ptr.y]});
 }
 function frame(now){
  if(!running)return;
@@ -396,9 +413,34 @@ function grab(size){
  for(let y=0;y<size;y++)out.set(px.subarray((size-1-y)*row,(size-y)*row),y*row);
  return out;
 }
+// Big PNGs are drawn in 2048px tiles: a whole 8192px frame is too big for many GPUs to draw in one go.
+// Each tile gets its own 2048px paint layer, so edges stay sharp at full size; glow and relief come from
+// a shared 2048px layer so they match across tiles. Tiles are stitched onto a 2D canvas.
+let paintTile=null,tileOut=null;
+function tiled(size){
+ const TILE=Math.min(size,2048),n=size/TILE;
+ if(!paintHi)paintHi=target(2048,'8',true);
+ if(!paintTile)paintTile=target(2048,'8',true);
+ if(!tileOut)tileOut=target(2048,'8',false);
+ renderPaint(paintHi);
+ const out=document.createElement('canvas');out.width=out.height=size;
+ const ctx=out.getContext('2d');
+ if(!ctx)throw new Error('this browser can\u2019t make an image that big');
+ const px=new Uint8Array(TILE*TILE*4),img=new ImageData(TILE,TILE),row=TILE*4;
+ for(let ty=0;ty<n;ty++)for(let tx=0;tx<n;tx++){
+  const region=new Float32Array([tx/n,ty/n,1/n,1/n]);
+  renderPaint(paintTile,region);
+  display(tileOut.f,TILE,paintHi,Math.max(cv.width,512),paintTile,region);
+  gl.readPixels(0,0,TILE,TILE,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  for(let y=0;y<TILE;y++)img.data.set(px.subarray((TILE-1-y)*row,(TILE-y)*row),y*row);
+  ctx.putImageData(img,tx*TILE,(n-1-ty)*TILE);
+ }
+ gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+ return out;
+}
 function advance(dt){T+=dt*params.flow;step(dt);}
 pour();
-api._frame=frame;api._pour=pour;api._grab=grab;api._advance=advance;
+api._frame=frame;api._pour=pour;api._grab=grab;api._tiled=tiled;api._advance=advance;
 api._force=function(w){lookW=cv.width;forceW=w;};api._unforce=function(){forceW=0;};api._canvas=cv;
 return null;
 }
@@ -419,12 +461,24 @@ api = {
  recording: false,
 
  /* PNG of the current moment */
+ /* PNG of the current moment, 1024 to 8192px */
  savePNG: function (size) {
   if (!ready) return Promise.reject(new Error('not running'));
   size = size || 2048;
-  var c = document.createElement('canvas'); c.width = c.height = size;
-  c.getContext('2d').putImageData(new ImageData(api._grab(size), size, size), 0, 0);
-  return new Promise(function (res) { c.toBlob(function (b) { download(b, 'gryphon-mandala.png'); res(); }, 'image/png'); });
+  var c;
+  if (size <= 1024) {
+   c = document.createElement('canvas'); c.width = c.height = size;
+   c.getContext('2d').putImageData(new ImageData(api._grab(size), size, size), 0, 0);
+  } else {
+   try { c = api._tiled(size); } catch (e) { return Promise.reject(e); }
+  }
+  return new Promise(function (res, rej) {
+   c.toBlob(function (b) {
+    c.width = c.height = 0;  // free the big canvas
+    if (!b) return rej(new Error('this browser couldn\u2019t build a ' + size + 'px image'));
+    download(b, 'gryphon-mandala-' + size + '.png'); res();
+   }, 'image/png');
+  });
  },
 
  /* Full-quality video: records the live canvas at 2048px in real time.

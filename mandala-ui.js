@@ -54,7 +54,13 @@
     document.getElementById('mandala-pour').addEventListener('click', function () { M.pour(); });
     var pngBtn = document.getElementById('mandala-png'), gifBtn = document.getElementById('mandala-gif');
     pngBtn.addEventListener('click', function () {
-        M.savePNG(set.pngSize).catch(function () { errEl.textContent = 'Couldn\u2019t save the image.'; errEl.hidden = false; });
+        pngBtn.disabled = true; pngBtn.textContent = 'saving\u2026';
+        // let the label paint before the (blocking) big render starts
+        setTimeout(function () {
+            M.savePNG(set.pngSize).catch(function (e) {
+                errEl.textContent = 'Couldn\u2019t save the image: ' + (e && e.message ? e.message : e); errEl.hidden = false;
+            }).then(function () { pngBtn.disabled = false; pngBtn.textContent = 'save png'; });
+        }, 30);
     });
     // save settings, remembered in this browser
     var SET_KEY = 'gryphon-save-settings';
