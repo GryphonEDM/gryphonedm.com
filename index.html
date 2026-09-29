@@ -3,6 +3,7 @@
     <head>
         <link rel="stylesheet" href="dist/index-minified.css">
         <link rel="stylesheet" href="desktop-scale.css">
+        <link rel="stylesheet" href="mandala.css">
         <title>www.gryphonedm.com</title>
     </head>
     <body>
@@ -88,6 +89,10 @@
                     <span class="rainbow-letter" data-index="23">o</span>
                     <span class="rainbow-letter" data-index="24">m</span>
                 </p>
+                <div class="mode-toggle" role="group" aria-label="Logo style">
+                    <button type="button" data-mode="classic" aria-pressed="true">classic</button>
+                    <button type="button" data-mode="mandala" aria-pressed="false">mandala</button>
+                </div>
                 <div id="wrap">
                     <div id="images">
                         <!-- https://imgur.com/a/Vjpq98Q -->
@@ -95,6 +100,31 @@
                         <img id="map" src="3FTIzUJ.jpg" />
                     </div>
                     <canvas id="output" width="1250" height="1250"></canvas>
+                    <canvas id="mandala" aria-label="Blacklight paint mandala. Drag to stir the paint, tap to drip a new drop."></canvas>
+                </div>
+                <div class="mandala-controls">
+                    <p class="mandala-hint">drag to stir the paint &middot; tap to drip a new drop</p>
+                    <div class="mandala-sliders">
+                        <label>flow <input type="range" name="flow" min="0" max="2" step="0.01"></label>
+                        <label>trip <input type="range" name="trip" min="0" max="1" step="0.01"></label>
+                        <label>swirl <input type="range" name="swirl" min="0" max="2" step="0.01"></label>
+                        <label>drips <input type="range" name="drips" min="0" max="3" step="0.01"></label>
+                        <label>gloss <input type="range" name="gloss" min="0" max="3" step="0.01"></label>
+                        <label>glow <input type="range" name="glow" min="0" max="1.5" step="0.01"></label>
+                    </div>
+                    <div class="mandala-row">
+                        <span class="label">mandala</span>
+                        <span class="mandala-row" id="mandala-folds">
+                            <button type="button" data-v="0">off</button>
+                            <button type="button" data-v="6">6</button>
+                            <button type="button" data-v="8">8</button>
+                            <button type="button" data-v="12">12</button>
+                        </span>
+                        <button type="button" id="mandala-uv">uv light on</button>
+                        <button type="button" id="mandala-pour">new pour</button>
+                        <button type="button" id="mandala-reset">reset</button>
+                    </div>
+                    <p class="mandala-error" id="mandala-error" hidden></p>
                 </div>
                 
 
@@ -232,5 +262,7 @@
 
         <script src="https://unpkg.com/imagesloaded@5/imagesloaded.pkgd.min.js"></script>
         <script src="dist/script-obfuscated.js"></script>
+        <script src="mandala.js"></script>
+        <script src="mandala-ui.js"></script>
     </body>    
 </html> 
