@@ -71,6 +71,8 @@ function render() {
 
 function loop() {
     requestAnimationFrame(loop);
+    // The mandala replaces the logo in mandala mode; skip the per-pixel work while it's hidden
+    if (document.body.classList.contains('mode-mandala')) return;
     update();
     render();
 }

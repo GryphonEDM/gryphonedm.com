@@ -1,0 +1,159 @@
+/* Classic / Mandala switch and the mandala's controls. Loaded after the main styles. */
+
+.mode-toggle {
+    display: inline-flex;
+    gap: 0.25rem;
+    margin: 0 auto clamp(0.9rem, 2vh, 1.4rem);
+    padding: 0.25rem;
+    border-radius: 999px;
+    background: rgba(40, 40, 40, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.mode-toggle button {
+    font: inherit;
+    font-size: clamp(0.9rem, 1.6vh, 1.05rem);
+    letter-spacing: 0.08em;
+    text-transform: lowercase;
+    color: #bbb;
+    background: transparent;
+    border: 0;
+    border-radius: 999px;
+    padding: 0.4rem 1.1rem;
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mode-toggle button:hover { color: #fff; }
+
+.mode-toggle button[aria-pressed="true"] {
+    color: #fff;
+    background: #000;
+    box-shadow: 0 0 0 1px #6441a5, 0 0 12px rgba(100, 65, 165, 0.8), inset 0 0 8px rgba(29, 185, 84, 0.35);
+}
+
+.mode-toggle button:focus-visible,
+.mandala-controls button:focus-visible,
+.mandala-controls input:focus-visible {
+    outline: 2px solid #1db954;
+    outline-offset: 2px;
+}
+
+/* The mandala canvas sits exactly where the classic logo does */
+#mandala {
+    display: none;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    max-width: 58rem;
+    margin-inline: auto;
+    border-radius: 50%;
+    background: #000;
+    touch-action: none;
+    cursor: crosshair;
+}
+
+body.mode-mandala #output { display: none; }
+body.mode-mandala #mandala { display: block; }
+
+.mandala-controls { display: none; }
+
+body.mode-mandala .mandala-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.55rem;
+    width: min(100%, 46rem);
+    margin-top: clamp(0.6rem, 1.4vh, 1rem);
+    padding: 0.7rem 1rem 0.8rem;
+    border-radius: 8px;
+    background: rgba(40, 40, 40, 0.8);
+    color: #ccc;
+    font-size: 0.9rem;
+}
+
+.mandala-hint {
+    margin: 0;
+    color: #999;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-align: center;
+}
+
+.mandala-sliders {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem 1.1rem;
+    width: 100%;
+}
+
+.mandala-sliders label {
+    display: grid;
+    grid-template-columns: 3.6rem minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    text-transform: lowercase;
+    letter-spacing: 0.05em;
+}
+
+.mandala-sliders input[type="range"] {
+    width: 100%;
+    min-width: 0;
+    accent-color: #1db954;
+}
+
+.mandala-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem 0.6rem;
+}
+
+.mandala-row .label {
+    text-transform: lowercase;
+    letter-spacing: 0.05em;
+}
+
+.mandala-controls button {
+    font: inherit;
+    font-size: 0.85rem;
+    color: #e0e0e0;
+    background: #000;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
+    cursor: pointer;
+    text-transform: lowercase;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.mandala-controls button:hover { border-color: #fff; color: #fff; }
+
+.mandala-controls button[aria-pressed="true"] {
+    color: #1db954;
+    border-color: #1db954;
+    box-shadow: 0 0 8px rgba(29, 185, 84, 0.6);
+}
+
+.mandala-error {
+    color: #ff9800;
+    font-size: 0.9rem;
+    text-align: center;
+    margin: 0;
+}
+
+@media (max-width: 48rem) {
+    .mandala-sliders { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 30rem) {
+    .mandala-sliders { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Desktop fit layout: leave room for the switch (and the controls in mandala mode) */
+@media (min-width: 90rem) and (min-height: 46rem) {
+    #wrap { width: min(100%, calc(100dvh - 17rem), 58rem); }
+    body.mode-mandala #wrap { width: min(100%, calc(100dvh - 26rem), 58rem); }
+}
