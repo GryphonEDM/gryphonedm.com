@@ -195,12 +195,15 @@ body.mode-mandala .mandala-controls {
     border-color: #1db954;
 }
 .mandala-settings {
+    --png: #1db954;
+    --gif: #ff9f1c;
+    --mp4: #a66bff;
     position: absolute;
     right: 0;
     bottom: calc(100% + 0.5rem);
     z-index: 5;
     display: grid;
-    gap: 0.4rem;
+    gap: 0.35rem;
     width: min(30rem, 100%);
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
     padding: 0.6rem 0.8rem;
@@ -215,7 +218,25 @@ body.mode-mandala .mandala-controls {
     align-items: center;
     gap: 0.5rem;
 }
-.set-name { color: #1db954; text-transform: lowercase; }
+.set-name { text-transform: lowercase; font-weight: 600; }
+
+/* each file type gets its own tinted band and colour so the sections are easy to tell apart */
+.set-group {
+    display: grid;
+    gap: 0.4rem;
+    padding: 0.45rem 0.55rem;
+    border-radius: 6px;
+    border-left: 3px solid var(--c);
+    background: color-mix(in srgb, var(--c) 9%, #151515);
+}
+.set-group.png { --c: var(--png); }
+.set-group.gif { --c: var(--gif); }
+.set-group.mp4 { --c: var(--mp4); }
+.set-group .set-name { color: var(--c); }
+.set-group .chips button[aria-pressed="true"] {
+    color: var(--c);
+    border-color: var(--c);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--c) 60%, transparent);
+}
 .set-label { color: #999; text-transform: lowercase; }
 .set-row .chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.set-note { margin: 0.1rem 0 0; color: #777; font-size: 0.75rem; text-align: center; }

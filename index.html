@@ -3,7 +3,7 @@
     <head>
         <link rel="stylesheet" href="dist/index-minified.css">
         <link rel="stylesheet" href="desktop-scale.css">
-        <link rel="stylesheet" href="mandala.css?v=20260929f">
+        <link rel="stylesheet" href="mandala.css?v=20260929g">
         <title>www.gryphonedm.com</title>
     </head>
     <body class="mode-mandala">
@@ -131,17 +131,22 @@
                         </button>
                     </div>
                     <div class="mandala-settings" id="mandala-settings" hidden>
-                        <div class="set-row"><span class="set-name">png</span><span class="set-label">size</span>
+                        <div class="set-group png">
+                            <div class="set-row"><span class="set-name">png</span><span class="set-label">size</span>
                             <span class="chips" data-key="pngSize"><button type="button" data-v="1024">1024</button><button type="button" data-v="2048">2048</button><button type="button" data-v="4096">4k</button><button type="button" data-v="8192">8k</button></span></div>
-                        <div class="set-row"><span class="set-name">gif</span><span class="set-label">length</span>
+                        </div>
+                        <div class="set-group gif">
+                            <div class="set-row"><span class="set-name">gif</span><span class="set-label">length</span>
                             <span class="chips" data-key="gifLen"><button type="button" data-v="3">3s</button><button type="button" data-v="5">5s</button><button type="button" data-v="8">8s</button><button type="button" data-v="12">12s</button></span></div>
-                        <div class="set-row"><span class="set-name"></span><span class="set-label">size</span>
+                            <div class="set-row"><span class="set-name"></span><span class="set-label">size</span>
                             <span class="chips" data-key="gifSize"><button type="button" data-v="320">320</button><button type="button" data-v="480">480</button><button type="button" data-v="640">640</button><button type="button" data-v="720">720</button></span></div>
-                        <div class="set-row"><span class="set-name" id="set-video-name">mp4</span><span class="set-label">length</span>
+                        </div>
+                        <div class="set-group mp4">
+                            <div class="set-row"><span class="set-name" id="set-video-name">mp4</span><span class="set-label">length</span>
                             <span class="chips" data-key="vidLen"><button type="button" data-v="5">5s</button><button type="button" data-v="10">10s</button><button type="button" data-v="20">20s</button><button type="button" data-v="30">30s</button></span></div>
-                        <div class="set-row"><span class="set-name"></span><span class="set-label">size</span>
+                            <div class="set-row"><span class="set-name"></span><span class="set-label">size</span>
                             <span class="chips" data-key="vidSize"><button type="button" data-v="1080">1080</button><button type="button" data-v="1440">1440</button><button type="button" data-v="2048">2048</button></span></div>
-                        <p class="set-note">saved in this browser</p>
+                        </div>
                     </div>
                     <p class="mandala-error" id="mandala-error" hidden></p>
                 </div>
@@ -281,7 +286,7 @@
 
         <script src="https://unpkg.com/imagesloaded@5/imagesloaded.pkgd.min.js"></script>
         <script src="dist/script-obfuscated.js"></script>
-        <script src="mandala.js?v=20260929f"></script>
-        <script src="mandala-ui.js?v=20260929f"></script>
+        <script src="mandala.js?v=20260929g"></script>
+        <script src="mandala-ui.js?v=20260929g"></script>
     </body>    
 </html> 
