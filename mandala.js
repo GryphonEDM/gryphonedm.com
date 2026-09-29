@@ -156,8 +156,8 @@ void main(){
  col=clamp(hueShift(col,hs),0.,1.);
  vec3 glowS=textureLod(paint,uv,4.5).rgb+textureLod(paint,uv,6.).rgb;
  glowS=clamp(hueShift(glowS*.5,hs),0.,1.);
- // the light follows the pointer but always stays tilted: straight-on light would glare off every flat patch at once
- vec2 tilt=vec2(cos(t*.3),sin(t*.23))*.6+(m-.5)*.9;
+ // the light drifts on its own and always stays tilted: straight-on light would glare off every flat patch at once
+ vec2 tilt=vec2(cos(t*.3),sin(t*.23))*.6;
  float tl=length(tilt);tilt=tl<1e-3?vec2(.5,0.):tilt/tl*clamp(tl,.5,.9);
  vec3 L=normalize(vec3(tilt,1.));
  float rv=max(dot(reflect(-L,n),vec3(0,0,1)),0.);float spec=pow(rv,70.)+.18*pow(rv,10.);
