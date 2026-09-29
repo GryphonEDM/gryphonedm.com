@@ -344,19 +344,41 @@ function step(dt){
   dropClock-=sdt*params.drips;if(dropClock<=0){autoDrop();dropClock=.35+Math.random()*.6;}
  }
 }
-function frame(now){
- if(!running)return;
- resize();const dt=last?Math.min((now-last)/1000,1/30):1/60;last=now;
- T+=dt*params.flow;
- if(params.flow>0)step(dt);
+function renderPaint(){
  gl.useProgram(P.paint.p);gl.uniform3fv(P.paint.u.P,PAL);
  run(P.paint,paint,{dye:dye.r.t},{folds:params.folds,t:T});
  gl.bindTexture(gl.TEXTURE_2D,paint.t);gl.generateMipmap(gl.TEXTURE_2D);
- run(P.disp,{f:null,w:cv.width},{paint:paint.t},{t:T,uvOn:params.uv,trip:params.trip,gloss:params.gloss,glow:params.glow,res:[cv.width,cv.width],m:[ptr.x,ptr.y]});
+}
+function display(fbo,w){
+ run(P.disp,{f:fbo,w:w},{paint:paint.t},{t:T,uvOn:params.uv,trip:params.trip,gloss:params.gloss,glow:params.glow,res:[w,w],m:[ptr.x,ptr.y]});
+}
+function frame(now){
+ if(!running)return;
+ resize();const dt=last?Math.min((now-last)/1000,1/30):1/60;last=now;
+ if(!api.recording){T+=dt*params.flow;if(params.flow>0)step(dt);}
+ renderPaint();display(null,cv.width);
  rafId=requestAnimationFrame(frame);
 }
+// offscreen render at any size -> RGBA pixels, top row first
+const snap={t:null,f:null,w:0};
+function grab(size){
+ if(snap.w!==size){
+  if(snap.t){gl.deleteTexture(snap.t);gl.deleteFramebuffer(snap.f);}
+  snap.t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,snap.t);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,size,size,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+  snap.f=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,snap.f);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,snap.t,0);snap.w=size;
+ }
+ renderPaint();display(snap.f,size);
+ const px=new Uint8Array(size*size*4);gl.readPixels(0,0,size,size,gl.RGBA,gl.UNSIGNED_BYTE,px);
+ gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+ const out=new Uint8ClampedArray(px.length),row=size*4;
+ for(let y=0;y<size;y++)out.set(px.subarray((size-1-y)*row,(size-y)*row),y*row);
+ return out;
+}
+function advance(dt){T+=dt*params.flow;step(dt);}
 pour();
-api._frame=frame;api._pour=pour;
+api._frame=frame;api._pour=pour;api._grab=grab;api._advance=advance;
 return null;
 }
 
@@ -372,7 +394,56 @@ api = {
  stop: function () { running = false; cancelAnimationFrame(rafId); },
  set: function (k, v) { if (k in params) params[k] = +v; },
  reset: function () { Object.assign(params, DEFAULTS); },
- pour: function () { if (ready) api._pour(); }
+ pour: function () { if (ready) api._pour(); },
+ recording: false,
+
+ /* PNG of the current moment */
+ savePNG: function (size) {
+  if (!ready) return Promise.reject(new Error('not running'));
+  size = size || 1600;
+  var c = document.createElement('canvas'); c.width = c.height = size;
+  c.getContext('2d').putImageData(new ImageData(api._grab(size), size, size), 0, 0);
+  return new Promise(function (res) { c.toBlob(function (b) { download(b, 'gryphon-mandala.png'); res(); }, 'image/png'); });
+ },
+
+ /* Seamless GIF loop recorded forward from now. onProgress(done, total) */
+ saveGIF: async function (opts, onProgress) {
+  if (!ready || api.recording) return;
+  opts = Object.assign({ seconds: 3, size: 480, fps: 20 }, opts);
+  var lib = await import('https://cdn.jsdelivr.net/npm/gifenc@1.0.3/dist/gifenc.esm.js');
+  var fps = opts.fps, L = Math.round(opts.seconds * fps), F = Math.min(fps, Math.floor(L / 3)), size = opts.size;
+  var enc = lib.GIFEncoder(), head = [];
+  function write(d) {
+   var pal = lib.quantize(d, 256, { format: 'rgb565' });
+   enc.writeFrame(lib.applyPalette(d, pal, 'rgb565'), size, size, { palette: pal, delay: 1000 / fps });
+  }
+  var saved = params.flow;
+  api.recording = true;
+  try {
+   params.flow = Math.max(params.flow, 0.15);
+   for (var i = 0; i < L + F; i++) {
+    api._advance(1 / fps / 2); api._advance(1 / fps / 2);
+    var d = api._grab(size);
+    if (i < F) head.push(d);
+    else if (i < L) write(d);
+    else { // cross-fade the tail into the head so the loop has no jump
+     var k = i - L, w = (k + 1) / F, h = head[k], m = new Uint8ClampedArray(d.length);
+     for (var j = 0; j < d.length; j++) m[j] = d[j] * (1 - w) + h[j] * w;
+     write(m);
+    }
+    if (onProgress) onProgress(i + 1, L + F);
+    await new Promise(function (r) { requestAnimationFrame(r); });
+   }
+   enc.finish();
+   download(new Blob([enc.bytes()], { type: 'image/gif' }), 'gryphon-mandala.gif');
+  } finally { api.recording = false; params.flow = saved; }
+ }
 };
+function download(blob, name) {
+ var a = document.createElement('a');
+ a.href = URL.createObjectURL(blob); a.download = name;
+ document.body.appendChild(a); a.click(); a.remove();
+ setTimeout(function () { URL.revokeObjectURL(a.href); }, 10000);
+}
 window.GryphonMandala = api;
 })();

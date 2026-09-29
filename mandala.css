@@ -138,6 +138,14 @@ body.mode-mandala .mandala-controls {
 
 .mandala-controls button:hover { border-color: #fff; color: #fff; }
 
+.mandala-controls button:disabled { opacity: 0.6; cursor: progress; }
+
+#mandala-png,
+#mandala-gif {
+    color: #1db954;
+    border-color: rgba(29, 185, 84, 0.6);
+}
+
 .mandala-controls button[aria-pressed="true"] {
     color: #1db954;
     border-color: #1db954;

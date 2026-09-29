@@ -57,6 +57,22 @@
     });
     document.getElementById('mandala-pour').addEventListener('click', function () { M.pour(); });
     document.getElementById('mandala-reset').addEventListener('click', function () { M.reset(); syncControls(); });
+    var pngBtn = document.getElementById('mandala-png'), gifBtn = document.getElementById('mandala-gif');
+    pngBtn.addEventListener('click', function () {
+        M.savePNG(1600).catch(function () { errEl.textContent = 'Couldn\u2019t save the image.'; errEl.hidden = false; });
+    });
+    gifBtn.addEventListener('click', function () {
+        if (M.recording) return;
+        gifBtn.disabled = true; pngBtn.disabled = true;
+        M.saveGIF({ seconds: 3, size: 480 }, function (n, total) {
+            gifBtn.textContent = 'recording ' + Math.round(n / total * 100) + '%';
+        }).catch(function (e) {
+            console.error(e);
+            errEl.textContent = 'Couldn\u2019t make the GIF. Check your connection and try again.'; errEl.hidden = false;
+        }).then(function () {
+            gifBtn.disabled = false; pngBtn.disabled = false; gifBtn.textContent = 'save gif';
+        });
+    });
     syncControls();
 
     // ?mode=classic in the URL, else the visitor's last choice, else mandala
