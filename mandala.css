@@ -59,6 +59,7 @@ body.mode-mandala #mandala { display: block; }
 .mandala-controls { display: none; }
 
 body.mode-mandala .mandala-controls {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -138,18 +139,7 @@ body.mode-mandala .mandala-controls {
 
 .mandala-controls button:hover { border-color: #fff; color: #fff; }
 
-.mandala-controls select {
-    font: inherit;
-    font-size: 0.85rem;
-    color: #e0e0e0;
-    background: #000;
-    border: 1px solid rgba(29, 185, 84, 0.6);
-    border-radius: 999px;
-    padding: 0.25rem 0.5rem;
-    cursor: pointer;
-}
 
-.mandala-controls select:disabled,
 .mandala-controls button:disabled { opacity: 0.6; cursor: progress; }
 
 #mandala-png,
@@ -188,3 +178,44 @@ body.mode-mandala .mandala-controls {
     #wrap { width: min(100%, calc(100dvh - 17rem), 58rem); }
     body.mode-mandala #wrap { width: min(100%, calc(100dvh - 26rem), 58rem); }
 }
+
+/* Save settings (gear) */
+.mandala-controls .gear {
+    position: absolute;
+    top: 0.45rem;
+    right: 0.55rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 0.45rem;
+    color: #bbb;
+}
+.mandala-controls .gear[aria-expanded="true"] {
+    color: #1db954;
+    border-color: #1db954;
+}
+.mandala-settings {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 0.5rem);
+    z-index: 5;
+    display: grid;
+    gap: 0.4rem;
+    width: min(30rem, 100%);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+    background: #111;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.mandala-settings[hidden] { display: none; }
+.set-row {
+    display: grid;
+    grid-template-columns: 2.6rem 3.4rem minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem;
+}
+.set-name { color: #1db954; text-transform: lowercase; }
+.set-label { color: #999; text-transform: lowercase; }
+.set-row .chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.set-note { margin: 0.1rem 0 0; color: #777; font-size: 0.75rem; text-align: center; }

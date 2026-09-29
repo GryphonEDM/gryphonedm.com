@@ -435,12 +435,12 @@ api = {
   for (var i = 0; i < types.length; i++) if (MediaRecorder.isTypeSupported(types[i])) return types[i];
   return null;
  },
- saveVideo: async function (seconds, onProgress) {
+ saveVideo: async function (seconds, size, onProgress) {
   if (!ready || api.recording) return;
   var type = api.videoType();
   if (!type) throw new Error('this browser can\u2019t record video');
   api.recording = 'video';
-  api._force(2048);
+  api._force(size || 2048);
   try {
    await new Promise(function (r) { requestAnimationFrame(function () { requestAnimationFrame(r); }); });
    var stream = api._canvas.captureStream(60);
