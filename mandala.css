@@ -155,8 +155,11 @@ body.mode-mandala .mandala-controls {
 .mandala-error {
     color: #ff9800;
     font-size: 0.9rem;
+    line-height: 1.4;
     text-align: center;
     margin: 0;
+    overflow-wrap: anywhere;
+    user-select: text;
 }
 
 @media (max-width: 48rem) {

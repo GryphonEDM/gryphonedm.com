@@ -249,13 +249,21 @@ void main(){
  o=vec4(col,1);
 }`;
 function sh(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);
- if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;}
+ if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error('compile: '+(gl.getShaderInfoLog(s)||'no log'));return s;}
 function prog(fs){const p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,VS));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,fs));
- gl.bindAttribLocation(p,0,'p');gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));
+ gl.bindAttribLocation(p,0,'p');gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error('link: '+(gl.getProgramInfoLog(p)||'no log'));
  const u={};const n=gl.getProgramParameter(p,gl.ACTIVE_UNIFORMS);for(let i=0;i<n;i++){const a=gl.getActiveUniform(p,i);u[a.name.replace('[0]','')]=gl.getUniformLocation(p,a.name);}
  return{p,u};}
-try{for(const[k,s]of Object.entries({gen:GEN,disp:DISP,adv:ADVECT,macc:MACC,curl:CURL,force:FORCE,div:DIV,pres:PRES,grad:GRAD,vs:VSPLAT,ds:DSPLAT,paint:PAINT,mix:MIXP}))P[k]=prog(s);}
-catch(e){console.error(e);return 'The paint shader failed to compile on this device.';}
+let stage='';
+try{for(const[k,s]of Object.entries({gen:GEN,disp:DISP,adv:ADVECT,macc:MACC,curl:CURL,force:FORCE,div:DIV,pres:PRES,grad:GRAD,vs:VSPLAT,ds:DSPLAT,paint:PAINT,mix:MIXP})){stage=k;P[k]=prog(s);}}
+catch(e){
+ // report exactly what this device's compiler said, plus which GPU it is
+ let gpu='unknown GPU';
+ try{const d=gl.getExtension('WEBGL_debug_renderer_info');gpu=d?gl.getParameter(d.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);}catch(_){}
+ const log=String(e&&e.message||e).replace(/\s+/g,' ').trim().slice(0,400)||'(the device gave no error text)';
+ console.error('mandala shader "'+stage+'" failed on '+gpu+':',e);
+ return 'The mandala couldn\u2019t start on this device. Shader: '+stage+' \u00b7 GPU: '+gpu+' \u00b7 Error: '+log;
+}
 
 const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);
 gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);

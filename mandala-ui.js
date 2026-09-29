@@ -16,11 +16,7 @@
         if (mandala) {
             var err = M.start(canvas);
             errEl.hidden = !err;
-            if (err) {
-                errEl.textContent = err;
-                // this browser can't run the mandala: show the classic logo on first load
-                if (!remember) { setMode('classic', false); return; }
-            }
+            if (err) errEl.textContent = err;
         } else {
             M.stop();
         }
