@@ -1,4 +1,4 @@
-/* Wires the Classic / Mandala switch and the mandala's sliders. Classic is the default. */
+/* Wires the Classic / Mandala switch and the mandala's sliders. Mandala is the default. */
 (function () {
     'use strict';
     var body = document.body;
@@ -16,7 +16,11 @@
         if (mandala) {
             var err = M.start(canvas);
             errEl.hidden = !err;
-            if (err) errEl.textContent = err;
+            if (err) {
+                errEl.textContent = err;
+                // this browser can't run the mandala: show the classic logo on first load
+                if (!remember) { setMode('classic', false); return; }
+            }
         } else {
             M.stop();
         }
@@ -51,10 +55,10 @@
     document.getElementById('mandala-reset').addEventListener('click', function () { M.reset(); syncControls(); });
     syncControls();
 
-    // ?mode=mandala in the URL, else the visitor's last choice, else classic
-    var start = 'classic';
+    // ?mode=classic in the URL, else the visitor's last choice, else mandala
+    var start = 'mandala';
     var q = new URLSearchParams(location.search).get('mode');
     if (q === 'mandala' || q === 'classic') start = q;
-    else { try { start = localStorage.getItem(STORE) || 'classic'; } catch (e) {} }
+    else { try { start = localStorage.getItem(STORE) || 'mandala'; } catch (e) {} }
     setMode(start, false);
 })();
