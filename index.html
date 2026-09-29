@@ -123,14 +123,20 @@
                         </span>
                         <button type="button" id="mandala-uv">uv light on</button>
                         <button type="button" id="mandala-pour">new pour</button>
-                        <button type="button" id="mandala-reset">reset</button>
                         <button type="button" id="mandala-png">save png</button>
-                        <select id="mandala-giflen" aria-label="GIF length and size">
-                            <option value="3x480">gif 3s</option>
-                            <option value="5x640" selected>gif 5s</option>
-                            <option value="8x720">gif 8s</option>
+                        <select id="mandala-len" aria-label="Recording length">
+                            <option value="3">3s</option>
+                            <option value="5" selected>5s</option>
+                            <option value="8">8s</option>
+                            <option value="12">12s</option>
+                        </select>
+                        <select id="mandala-gifsize" aria-label="GIF size">
+                            <option value="480">gif 480</option>
+                            <option value="640" selected>gif 640</option>
+                            <option value="720">gif 720</option>
                         </select>
                         <button type="button" id="mandala-gif">save gif</button>
+                        <button type="button" id="mandala-mp4">save mp4</button>
                     </div>
                     <p class="mandala-error" id="mandala-error" hidden></p>
                 </div>

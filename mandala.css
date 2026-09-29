@@ -153,7 +153,8 @@ body.mode-mandala .mandala-controls {
 .mandala-controls button:disabled { opacity: 0.6; cursor: progress; }
 
 #mandala-png,
-#mandala-gif {
+#mandala-gif,
+#mandala-mp4 {
     color: #1db954;
     border-color: rgba(29, 185, 84, 0.6);
 }

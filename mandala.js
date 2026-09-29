@@ -332,7 +332,8 @@ cv.addEventListener('pointerup',()=>{if(ptr.down&&ptr.moved<.01){
  ptr.down=0;});
 cv.addEventListener('pointercancel',()=>ptr.down=0);
 
-function resize(){const d=Math.min(devicePixelRatio||1,2);const w=Math.min(Math.round(cv.clientWidth*d),1600);if(w>0&&cv.width!==w){cv.width=w;cv.height=w;}}
+let forceW=0,lookW=0;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const w=forceW||Math.min(Math.round(cv.clientWidth*d),1600);if(w>0&&cv.width!==w){cv.width=w;cv.height=w;}}
 const txN=[1/N,1/N],txD=[1/D,1/D];
 let last=0,dropClock=0,bigClock=3,genTick=0;
 function step(dt){
@@ -369,8 +370,10 @@ function display(fbo,w,src,look){
 function frame(now){
  if(!running)return;
  resize();const dt=last?Math.min((now-last)/1000,1/30):1/60;last=now;
- if(!api.recording){T+=dt*params.flow;if(params.flow>0)step(dt);}
- renderPaint();display(null,cv.width);
+ if(api.recording!==true){T+=dt*params.flow;if(params.flow>0)step(dt);}
+ // while a video records, the canvas renders at 2048px from the full-resolution paint layer
+ if(forceW){if(!paintHi)paintHi=target(2048,'8',true);renderPaint(paintHi);display(null,cv.width,paintHi,lookW);}
+ else{renderPaint();display(null,cv.width);}
  rafId=requestAnimationFrame(frame);
 }
 // offscreen render at any size -> RGBA pixels, top row first
@@ -396,6 +399,7 @@ function grab(size){
 function advance(dt){T+=dt*params.flow;step(dt);}
 pour();
 api._frame=frame;api._pour=pour;api._grab=grab;api._advance=advance;
+api._force=function(w){lookW=cv.width;forceW=w;};api._unforce=function(){forceW=0;};api._canvas=cv;
 return null;
 }
 
@@ -421,6 +425,43 @@ api = {
   var c = document.createElement('canvas'); c.width = c.height = size;
   c.getContext('2d').putImageData(new ImageData(api._grab(size), size, size), 0, 0);
   return new Promise(function (res) { c.toBlob(function (b) { download(b, 'gryphon-mandala.png'); res(); }, 'image/png'); });
+ },
+
+ /* Full-quality video: records the live canvas at 2048px in real time.
+    MP4 where the browser can record it (Chrome, Edge, Safari), otherwise WebM (Firefox). */
+ videoType: function () {
+  if (!window.MediaRecorder) return null;
+  var types = ['video/mp4;codecs=avc1.640033', 'video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
+  for (var i = 0; i < types.length; i++) if (MediaRecorder.isTypeSupported(types[i])) return types[i];
+  return null;
+ },
+ saveVideo: async function (seconds, onProgress) {
+  if (!ready || api.recording) return;
+  var type = api.videoType();
+  if (!type) throw new Error('this browser can\u2019t record video');
+  api.recording = 'video';
+  api._force(2048);
+  try {
+   await new Promise(function (r) { requestAnimationFrame(function () { requestAnimationFrame(r); }); });
+   var stream = api._canvas.captureStream(60);
+   var rec = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 40000000 });
+   var chunks = [];
+   rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+   var stopped = new Promise(function (r) { rec.onstop = r; });
+   rec.start(500);
+   var t0 = performance.now();
+   await new Promise(function (r) {
+    (function tick() {
+     var f = (performance.now() - t0) / 1000 / seconds;
+     if (onProgress) onProgress(Math.min(f, 1));
+     if (f >= 1) r(); else setTimeout(tick, 200);
+    })();
+   });
+   rec.stop(); await stopped;
+   stream.getTracks().forEach(function (t) { t.stop(); });
+   var mp4 = type.indexOf('mp4') >= 0;
+   download(new Blob(chunks, { type: mp4 ? 'video/mp4' : 'video/webm' }), 'gryphon-mandala.' + (mp4 ? 'mp4' : 'webm'));
+  } finally { api._unforce(); api.recording = false; }
  },
 
  /* Seamless GIF loop recorded forward from now. onProgress(stage, fraction)

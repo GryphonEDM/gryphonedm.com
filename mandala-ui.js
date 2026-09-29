@@ -52,24 +52,35 @@
         M.set('uv', M.params.uv ? 0 : 1); syncControls();
     });
     document.getElementById('mandala-pour').addEventListener('click', function () { M.pour(); });
-    document.getElementById('mandala-reset').addEventListener('click', function () { M.reset(); syncControls(); });
     var pngBtn = document.getElementById('mandala-png'), gifBtn = document.getElementById('mandala-gif');
     pngBtn.addEventListener('click', function () {
         M.savePNG(2048).catch(function () { errEl.textContent = 'Couldn\u2019t save the image.'; errEl.hidden = false; });
     });
-    var gifLen = document.getElementById('mandala-giflen');
+    var lenSel = document.getElementById('mandala-len'), gifSize = document.getElementById('mandala-gifsize');
+    var mp4Btn = document.getElementById('mandala-mp4');
+    var busyEls = [pngBtn, gifBtn, mp4Btn, lenSel, gifSize];
+    function busy(on) { busyEls.forEach(function (el) { el.disabled = on; }); }
+    function fail(what, e) {
+        console.error(e);
+        errEl.textContent = 'Couldn\u2019t make the ' + what + ': ' + (e && e.message ? e.message : e); errEl.hidden = false;
+    }
     gifBtn.addEventListener('click', function () {
         if (M.recording) return;
-        var pick = gifLen.value.split('x');  // "seconds x size"
-        gifBtn.disabled = true; pngBtn.disabled = true; gifLen.disabled = true;
-        M.saveGIF({ seconds: +pick[0], size: +pick[1] }, function (stage, f) {
+        busy(true);
+        M.saveGIF({ seconds: +lenSel.value, size: +gifSize.value }, function (stage, f) {
             gifBtn.textContent = (stage === 'recording' ? 'recording ' : 'encoding ') + Math.round(f * 100) + '%';
-        }).catch(function (e) {
-            console.error(e);
-            errEl.textContent = 'Couldn\u2019t make the GIF: ' + (e && e.message ? e.message : e); errEl.hidden = false;
-        }).then(function () {
-            gifBtn.disabled = false; pngBtn.disabled = false; gifLen.disabled = false; gifBtn.textContent = 'save gif';
-        });
+        }).catch(function (e) { fail('GIF', e); })
+          .then(function () { busy(false); gifBtn.textContent = 'save gif'; });
+    });
+    if (!M.videoType()) mp4Btn.hidden = true;  // no video recording in this browser
+    else if (M.videoType().indexOf('mp4') < 0) mp4Btn.textContent = 'save video';
+    var mp4Label = mp4Btn.textContent;
+    mp4Btn.addEventListener('click', function () {
+        if (M.recording) return;
+        busy(true);
+        M.saveVideo(+lenSel.value, function (f) { mp4Btn.textContent = 'recording ' + Math.round(f * 100) + '%'; })
+          .catch(function (e) { fail('video', e); })
+          .then(function () { busy(false); mp4Btn.textContent = mp4Label; });
     });
     syncControls();
 
